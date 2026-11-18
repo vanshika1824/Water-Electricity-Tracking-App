@@ -11,6 +11,8 @@ class ApiClient:
         self.token: Optional[str] = None
         self.current_user: Optional[Dict[str, Any]] = None
         self.timeout = 8.0  # seconds
+        self.session = requests.Session()
+        self.session.trust_env = False
 
     def _headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -21,7 +23,7 @@ class ApiClient:
     def check_health(self) -> Tuple[bool, str]:
         """Check if backend server is reachable."""
         try:
-            res = requests.get(f"{self.base_url}/health", timeout=3.0)
+            res = self.session.get(f"{self.base_url}/health", timeout=3.0)
             if res.status_code == 200:
                 return True, "Backend is healthy and reachable"
             return False, f"Backend returned status {res.status_code}"
@@ -46,7 +48,7 @@ class ApiClient:
             "confirm_password": confirm_password,
         }
         try:
-            res = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            res = self.session.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code == 201:
                 self.token = data.get("access_token")
@@ -66,7 +68,7 @@ class ApiClient:
         url = f"{self.base_url}/auth/login"
         payload = {"email": email, "password": password}
         try:
-            res = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            res = self.session.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code == 200:
                 self.token = data.get("access_token")
@@ -85,7 +87,7 @@ class ApiClient:
         """Fetch current household profile."""
         url = f"{self.base_url}/profile"
         try:
-            res = requests.get(url, headers=self._headers(), timeout=self.timeout)
+            res = self.session.get(url, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code == 200:
                 return True, data
@@ -113,7 +115,7 @@ class ApiClient:
             "unusual_occupancy": unusual_occupancy or "None"
         }
         try:
-            res = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            res = self.session.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code in (200, 201):
                 if self.current_user:
@@ -156,7 +158,7 @@ class ApiClient:
             "usage_notes": usage_notes
         }
         try:
-            res = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            res = self.session.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code in (200, 201):
                 return True, data
@@ -193,7 +195,7 @@ class ApiClient:
             "other_water_usage": other_water_usage
         }
         try:
-            res = requests.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
+            res = self.session.post(url, json=payload, headers=self._headers(), timeout=self.timeout)
             data = res.json()
             if res.status_code in (200, 201):
                 return True, data
@@ -204,10 +206,54 @@ class ApiClient:
         except Exception as e:
             return False, f"Network error: {str(e)}"
 
+    def get_consumption_summary(self) -> Tuple[bool, Any]:
+        """Fetch comprehensive consumption summary and analytics."""
+        url = f"{self.base_url}/consumption/summary"
+        try:
+            res = self.session.get(url, headers=self._headers(), timeout=self.timeout)
+            data = res.json()
+            if res.status_code == 200:
+                return True, data
+            detail = data.get("detail", "Failed to fetch consumption summary.")
+            if isinstance(detail, list):
+                detail = "; ".join([item.get("msg", str(item)) for item in detail])
+            return False, str(detail)
+        except requests.exceptions.ConnectionError:
+            return False, "Server unavailable. Please verify FastAPI backend is running."
+        except Exception as e:
+            return False, f"Network error: {str(e)}"
+
+    def get_electricity_history(self) -> Tuple[bool, Any]:
+        """Retrieve logged electricity consumption history."""
+        url = f"{self.base_url}/consumption/electricity"
+        try:
+            res = self.session.get(url, headers=self._headers(), timeout=self.timeout)
+            data = res.json()
+            if res.status_code == 200:
+                return True, data
+            detail = data.get("detail", "Failed to fetch electricity history.")
+            return False, str(detail)
+        except Exception as e:
+            return False, f"Network error: {str(e)}"
+
+    def get_water_history(self) -> Tuple[bool, Any]:
+        """Retrieve logged water consumption history."""
+        url = f"{self.base_url}/consumption/water"
+        try:
+            res = self.session.get(url, headers=self._headers(), timeout=self.timeout)
+            data = res.json()
+            if res.status_code == 200:
+                return True, data
+            detail = data.get("detail", "Failed to fetch water history.")
+            return False, str(detail)
+        except Exception as e:
+            return False, f"Network error: {str(e)}"
+
     def logout(self):
         """Clear token and active user session."""
         self.token = None
         self.current_user = None
+
 
 
 # Shared singleton client instance

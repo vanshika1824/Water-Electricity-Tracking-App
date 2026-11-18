@@ -203,3 +203,241 @@ def test_unauthorized_access_protection():
 
     res4 = client.get("/profile", headers={"Authorization": "Bearer invalid_token_xyz"})
     assert res4.status_code == 401
+
+    res5 = client.get("/consumption/summary")
+    assert res5.status_code == 401
+
+
+def test_consumption_summary_missing_profile():
+    """Verify summary endpoint returns safe default response when user has no profile."""
+    unique_suffix = int(time.time() * 1000) + 101
+    email = f"summary_noprofile_{unique_suffix}@example.com"
+    password = "TestPassword123!"
+
+    reg_res = client.post("/auth/register", json={
+        "full_name": "No Profile Resident",
+        "email": email,
+        "password": password,
+        "confirm_password": password
+    })
+    assert reg_res.status_code == 201
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.get("/consumption/summary", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["has_profile"] is False
+    assert data["profile"] is None
+    assert data["electricity"]["latest_record"] is None
+    assert data["electricity"]["per_person_kwh"] is None
+    assert data["electricity"]["change_pct_vs_previous"] is None
+    assert data["electricity"]["total_records_count"] == 0
+    assert data["water"]["latest_record"] is None
+    assert data["water"]["per_person_litres_monthly"] is None
+    assert data["water"]["per_person_litres_daily"] is None
+    assert data["water"]["change_pct_vs_previous"] is None
+    assert data["water"]["total_records_count"] == 0
+    assert data["recent_electricity_records"] == []
+    assert data["recent_water_records"] == []
+
+
+def test_consumption_summary_with_profile_no_records():
+    """Verify summary returns household profile with safe null metrics when no consumption is recorded."""
+    unique_suffix = int(time.time() * 1000) + 202
+    email = f"summary_norecords_{unique_suffix}@example.com"
+    password = "TestPassword123!"
+
+    reg_res = client.post("/auth/register", json={
+        "full_name": "Profile Only Resident",
+        "email": email,
+        "password": password,
+        "confirm_password": password
+    })
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create profile with 4 members
+    client.post("/profile", headers=headers, json={
+        "household_members": 4,
+        "house_type": "Apartment",
+        "location": "Indirapuram, Ghaziabad",
+        "num_bathrooms": 2,
+        "people_usually_at_home": 2,
+        "unusual_occupancy": "None"
+    })
+
+    res = client.get("/consumption/summary", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["has_profile"] is True
+    assert data["profile"]["household_members"] == 4
+    assert data["electricity"]["latest_record"] is None
+    assert data["electricity"]["per_person_kwh"] is None
+    assert data["electricity"]["change_pct_vs_previous"] is None
+    assert data["electricity"]["total_records_count"] == 0
+    assert data["water"]["latest_record"] is None
+    assert data["water"]["per_person_litres_monthly"] is None
+    assert data["water"]["per_person_litres_daily"] is None
+    assert data["water"]["change_pct_vs_previous"] is None
+    assert data["water"]["total_records_count"] == 0
+
+
+def test_consumption_summary_calculation_accuracy_and_trends():
+    """Verify per-person metrics, null change on single record, and exact month-over-month calculation on two records."""
+    unique_suffix = int(time.time() * 1000) + 303
+    email = f"summary_trends_{unique_suffix}@example.com"
+    password = "TestPassword123!"
+
+    reg_res = client.post("/auth/register", json={
+        "full_name": "Trends Resident",
+        "email": email,
+        "password": password,
+        "confirm_password": password
+    })
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Profile with 4 members
+    client.post("/profile", headers=headers, json={
+        "household_members": 4,
+        "house_type": "Independent House",
+        "location": "Whitefield, Bengaluru",
+        "num_bathrooms": 3,
+        "people_usually_at_home": 3,
+        "unusual_occupancy": "None"
+    })
+
+    # 2. Record #1 (Baseline): Electricity 400.0 kWh, Water 12000.0 Litres
+    client.post("/consumption/electricity", headers=headers, json={
+        "monthly_consumption_kwh": 400.0,
+        "ac_count": 2,
+        "fan_count": 5
+    })
+    client.post("/consumption/water", headers=headers, json={
+        "monthly_consumption_litres": 12000.0,
+        "num_showers": 4
+    })
+
+    # Summary with single record:
+    # per-person electricity = 400 / 4 = 100.0 kWh
+    # per-person water monthly = 12000 / 4 = 3000.0 Litres
+    # per-person water daily (LPCD) = 12000 / (4 * 30) = 100.0 LPCD
+    # Comparison changes MUST be null because only 1 record exists.
+    res1 = client.get("/consumption/summary", headers=headers)
+    assert res1.status_code == 200
+    d1 = res1.json()
+    assert d1["electricity"]["latest_record"]["monthly_consumption_kwh"] == 400.0
+    assert d1["electricity"]["per_person_kwh"] == 100.0
+    assert d1["electricity"]["change_pct_vs_previous"] is None
+    assert d1["electricity"]["change_kwh_vs_previous"] is None
+    assert d1["electricity"]["total_records_count"] == 1
+
+    assert d1["water"]["latest_record"]["monthly_consumption_litres"] == 12000.0
+    assert d1["water"]["per_person_litres_monthly"] == 3000.0
+    assert d1["water"]["per_person_litres_daily"] == 100.0
+    assert d1["water"]["change_pct_vs_previous"] is None
+    assert d1["water"]["change_litres_vs_previous"] is None
+    assert d1["water"]["total_records_count"] == 1
+
+    # Small pause to guarantee distinct sequential order
+    time.sleep(0.05)
+
+    # 3. Record #2: Electricity 500.0 kWh (+100 kWh, +25%), Water 9000.0 Litres (-3000 Litres, -25%)
+    client.post("/consumption/electricity", headers=headers, json={
+        "monthly_consumption_kwh": 500.0,
+        "ac_count": 2,
+        "fan_count": 5
+    })
+    client.post("/consumption/water", headers=headers, json={
+        "monthly_consumption_litres": 9000.0,
+        "num_showers": 4
+    })
+
+    res2 = client.get("/consumption/summary", headers=headers)
+    assert res2.status_code == 200
+    d2 = res2.json()
+
+    # Electricity checks:
+    # Latest: 500.0 kWh
+    # Per person: 500 / 4 = 125.0 kWh
+    # Change kwh: 500 - 400 = 100.0 kWh
+    # Change pct: ((500 - 400) / 400) * 100 = 25.0%
+    assert d2["electricity"]["latest_record"]["monthly_consumption_kwh"] == 500.0
+    assert d2["electricity"]["per_person_kwh"] == 125.0
+    assert d2["electricity"]["change_kwh_vs_previous"] == 100.0
+    assert d2["electricity"]["change_pct_vs_previous"] == 25.0
+    assert d2["electricity"]["total_records_count"] == 2
+    assert len(d2["recent_electricity_records"]) == 2
+    assert d2["recent_electricity_records"][0]["monthly_consumption_kwh"] == 500.0
+    assert d2["recent_electricity_records"][1]["monthly_consumption_kwh"] == 400.0
+
+    # Water checks:
+    # Latest: 9000.0 Litres
+    # Per person monthly: 9000 / 4 = 2250.0 Litres
+    # Per person daily: 9000 / (4 * 30) = 75.0 LPCD
+    # Change litres: 9000 - 12000 = -3000.0 Litres
+    # Change pct: ((9000 - 12000) / 12000) * 100 = -25.0%
+    assert d2["water"]["latest_record"]["monthly_consumption_litres"] == 9000.0
+    assert d2["water"]["per_person_litres_monthly"] == 2250.0
+    assert d2["water"]["per_person_litres_daily"] == 75.0
+    assert d2["water"]["change_litres_vs_previous"] == -3000.0
+    assert d2["water"]["change_pct_vs_previous"] == -25.0
+    assert d2["water"]["total_records_count"] == 2
+    assert len(d2["recent_water_records"]) == 2
+    assert d2["recent_water_records"][0]["monthly_consumption_litres"] == 9000.0
+    assert d2["recent_water_records"][1]["monthly_consumption_litres"] == 12000.0
+
+
+def test_consumption_summary_zero_baseline_division_safety():
+    """Verify that when previous consumption is 0, percentage change returns null rather than crashing with ZeroDivisionError."""
+    unique_suffix = int(time.time() * 1000) + 404
+    email = f"summary_zero_{unique_suffix}@example.com"
+    password = "TestPassword123!"
+
+    reg_res = client.post("/auth/register", json={
+        "full_name": "Zero Baseline Resident",
+        "email": email,
+        "password": password,
+        "confirm_password": password
+    })
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    client.post("/profile", headers=headers, json={
+        "household_members": 2,
+        "house_type": "Apartment",
+        "location": "Jaipur, Rajasthan",
+        "num_bathrooms": 1,
+        "people_usually_at_home": 1,
+        "unusual_occupancy": "Vacation"
+    })
+
+    # Record 1: 0 kWh and 0 Litres (vacation month)
+    client.post("/consumption/electricity", headers=headers, json={"monthly_consumption_kwh": 0.0})
+    client.post("/consumption/water", headers=headers, json={"monthly_consumption_litres": 0.0})
+
+    time.sleep(0.05)
+
+    # Record 2: 120 kWh and 3000 Litres (return from vacation)
+    client.post("/consumption/electricity", headers=headers, json={"monthly_consumption_kwh": 120.0})
+    client.post("/consumption/water", headers=headers, json={"monthly_consumption_litres": 3000.0})
+
+    res = client.get("/consumption/summary", headers=headers)
+    assert res.status_code == 200
+    data = res.json()
+
+    # Electricity: previous was 0, so change_pct must be None (not DivisionByZero)
+    assert data["electricity"]["latest_record"]["monthly_consumption_kwh"] == 120.0
+    assert data["electricity"]["per_person_kwh"] == 60.0  # 120 / 2
+    assert data["electricity"]["change_kwh_vs_previous"] == 120.0
+    assert data["electricity"]["change_pct_vs_previous"] is None
+
+    # Water: previous was 0, so change_pct must be None
+    assert data["water"]["latest_record"]["monthly_consumption_litres"] == 3000.0
+    assert data["water"]["per_person_litres_monthly"] == 1500.0  # 3000 / 2
+    assert data["water"]["per_person_litres_daily"] == 50.0  # 3000 / (2 * 30)
+    assert data["water"]["change_litres_vs_previous"] == 3000.0
+    assert data["water"]["change_pct_vs_previous"] is None
+
+

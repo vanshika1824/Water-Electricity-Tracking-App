@@ -4,6 +4,9 @@ from screens.register_screen import RegisterScreen
 from screens.profile_screen import ProfileScreen
 from screens.electricity_screen import ElectricityScreen
 from screens.water_screen import WaterScreen
+from screens.dashboard_screen import DashboardScreen
+from screens.history_screen import HistoryScreen
+from screens.settings_screen import SettingsScreen
 
 __all__ = [
     "WelcomeScreen",
@@ -11,5 +14,10 @@ __all__ = [
     "RegisterScreen",
     "ProfileScreen",
     "ElectricityScreen",
-    "WaterScreen"
+    "WaterScreen",
+    "DashboardScreen",
+    "HistoryScreen",
+    "SettingsScreen",
 ]
+
+

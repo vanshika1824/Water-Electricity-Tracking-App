@@ -9,6 +9,23 @@ __pycache__/
 # IDE
 .vscode/
 
+# Large Datasets (Stored locally / Zenodo / UCI)
+data/
+
+# Pytest & Testing Cache
+.pytest_cache/
+
+# Kivy Local Runtime Cache & Window Config
+.kivy/
+
+# Local UI Preferences & Temporary Media
+mobile/.theme_pref.json
+mobile/screenshots/
+mobile/screenshots.zip
+
+# Scratch & Temporary Audit Scripts
+scratch/
+
 # OS
 .DS_Store
 Thumbs.db

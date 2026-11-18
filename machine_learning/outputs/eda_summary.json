@@ -1,0 +1,42 @@
+{
+  "electricity": {
+    "dataset": "UCI Individual Household Electric Power Consumption",
+    "total_days": 1442,
+    "complete_days": 1417,
+    "mean_daily_kwh": 26.198,
+    "std_daily_kwh": 10.002,
+    "median_daily_kwh": 25.938,
+    "min_daily_kwh": 4.172,
+    "max_daily_kwh": 79.556,
+    "q25_daily_kwh": 19.662,
+    "q75_daily_kwh": 31.675,
+    "total_period_kwh": 37116.27,
+    "submetering_shares": {
+      "sub1_kitchen_pct": 6.16,
+      "sub2_laundry_pct": 7.13,
+      "sub3_ac_geyser_pct": 35.52,
+      "other_unmetered_pct": 51.19
+    }
+  },
+  "water": {
+    "dataset": "HSB Living Lab Fixture-Level Household Water Dataset",
+    "total_monitored_days": 946,
+    "total_apartment_days": 20095,
+    "monitored_apartments": 28,
+    "apartment_daily_mean_litres": 98.85,
+    "apartment_daily_median_litres": 49.0,
+    "apartment_daily_min_litres": 1.0,
+    "apartment_daily_max_litres": 9660.0,
+    "building_daily_mean_litres": 3457.49,
+    "building_daily_median_litres": 3364.5,
+    "building_total_period_m3": 3270.789,
+    "fixture_shares": {
+      "shower_pct": 15.4,
+      "washbasin_pct": 15.46,
+      "kitchen_tap_pct": 29.92,
+      "toilet_pct": 34.64,
+      "laundry_dish_pct": 4.59,
+      "other_pct": 0.0
+    }
+  }
+}

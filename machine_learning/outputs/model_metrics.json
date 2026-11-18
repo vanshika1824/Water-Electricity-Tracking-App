@@ -1,0 +1,195 @@
+{
+  "metadata": {
+    "date": "2026-11-15",
+    "phase": "Phase 4 - Machine Learning Model Development",
+    "electricity_task": "Daily household active energy consumption forecasting (kWh)",
+    "water_task": "Daily apartment-level water consumption forecasting (Litres)",
+    "leakage_protection": "Strict chronological out-of-time splits with verified past-only calendar-day lags"
+  },
+  "electricity": {
+    "Baseline_Persistence": {
+      "description": "Persistence Baseline: tomorrow = yesterday (lag_1)",
+      "val_metrics": {
+        "MAE_kwh": 6.307,
+        "RMSE_kwh": 8.0383,
+        "R2": 0.1277,
+        "MedAE_kwh": 5.366
+      },
+      "test_metrics": {
+        "MAE_kwh": 5.2789,
+        "RMSE_kwh": 7.3088,
+        "R2": 0.1844,
+        "MedAE_kwh": 3.782
+      }
+    },
+    "Baseline_7Day_MA": {
+      "description": "7-Day Moving Average Baseline (rolling_mean_7)",
+      "val_metrics": {
+        "MAE_kwh": 4.8296,
+        "RMSE_kwh": 6.3893,
+        "R2": 0.4489,
+        "MedAE_kwh": 3.8485
+      },
+      "test_metrics": {
+        "MAE_kwh": 4.9155,
+        "RMSE_kwh": 6.6274,
+        "R2": 0.3294,
+        "MedAE_kwh": 3.4708
+      }
+    },
+    "Ridge_Regression": {
+      "description": "Ridge Regression (alpha=100.0, StandardScaler)",
+      "val_metrics": {
+        "MAE_kwh": 4.5606,
+        "RMSE_kwh": 5.9447,
+        "R2": 0.5229,
+        "MedAE_kwh": 3.6603
+      },
+      "test_metrics": {
+        "MAE_kwh": 4.6641,
+        "RMSE_kwh": 6.2452,
+        "R2": 0.4045,
+        "MedAE_kwh": 3.5042
+      },
+      "best_hyperparameters": {
+        "alpha": 100.0
+      }
+    },
+    "Random_Forest": {
+      "description": "Random Forest Regressor (n_estimators=100, max_depth=8, min_samples_leaf=3)",
+      "val_metrics": {
+        "MAE_kwh": 4.6033,
+        "RMSE_kwh": 5.8377,
+        "R2": 0.5399,
+        "MedAE_kwh": 3.7791
+      },
+      "test_metrics": {
+        "MAE_kwh": 4.3329,
+        "RMSE_kwh": 5.8104,
+        "R2": 0.4845,
+        "MedAE_kwh": 3.5184
+      },
+      "feature_importances": {
+        "lag_1": 0.2456,
+        "lag_7": 0.072,
+        "lag_30": 0.0386,
+        "rolling_mean_7": 0.4157,
+        "rolling_std_7": 0.0405,
+        "rolling_mean_30": 0.052,
+        "day_of_week": 0.0455,
+        "is_weekend": 0.0213,
+        "month": 0.0066,
+        "day_of_year": 0.0622
+      }
+    },
+    "Gradient_Boosting": {
+      "description": "Gradient Boosting Regressor (n_estimators=100, lr=0.05, max_depth=4)",
+      "val_metrics": {
+        "MAE_kwh": 4.6208,
+        "RMSE_kwh": 5.9276,
+        "R2": 0.5257,
+        "MedAE_kwh": 3.9846
+      },
+      "test_metrics": {
+        "MAE_kwh": 4.3449,
+        "RMSE_kwh": 6.0115,
+        "R2": 0.4482,
+        "MedAE_kwh": 3.1576
+      },
+      "feature_importances": {
+        "lag_1": 0.2495,
+        "lag_7": 0.0537,
+        "lag_30": 0.0362,
+        "rolling_mean_7": 0.4048,
+        "rolling_std_7": 0.0464,
+        "rolling_mean_30": 0.0545,
+        "day_of_week": 0.052,
+        "is_weekend": 0.0255,
+        "month": 0.007,
+        "day_of_year": 0.0703
+      }
+    },
+    "selected_best_model": "Ridge_Regression"
+  },
+  "water": {
+    "Baseline_Persistence": {
+      "description": "Persistence Baseline: tomorrow = yesterday (lag_1)",
+      "val_metrics": {
+        "MAE_litres": 27.0621,
+        "RMSE_litres": 53.4728,
+        "R2": 0.7148,
+        "MedAE_litres": 13.0
+      },
+      "test_metrics": {
+        "MAE_litres": 25.6943,
+        "RMSE_litres": 55.5609,
+        "R2": 0.6994,
+        "MedAE_litres": 10.0
+      }
+    },
+    "Baseline_7Day_MA": {
+      "description": "7-Day Moving Average Baseline (rolling_mean_7)",
+      "val_metrics": {
+        "MAE_litres": 25.2287,
+        "RMSE_litres": 44.601,
+        "R2": 0.8016,
+        "MedAE_litres": 13.8571
+      },
+      "test_metrics": {
+        "MAE_litres": 24.0478,
+        "RMSE_litres": 46.7352,
+        "R2": 0.7873,
+        "MedAE_litres": 12.1429
+      }
+    },
+    "Ridge_Regression": {
+      "description": "Ridge Regression (alpha=1000.0, StandardScaler, OneHotEncoder)",
+      "val_metrics": {
+        "MAE_litres": 27.1848,
+        "RMSE_litres": 47.3664,
+        "R2": 0.7762,
+        "MedAE_litres": 15.801
+      },
+      "test_metrics": {
+        "MAE_litres": 26.754,
+        "RMSE_litres": 50.1175,
+        "R2": 0.7554,
+        "MedAE_litres": 14.372
+      },
+      "best_hyperparameters": {
+        "alpha": 1000.0
+      }
+    },
+    "Random_Forest": {
+      "description": "Random Forest Regressor (n_estimators=100, max_depth=12, min_samples_leaf=5)",
+      "val_metrics": {
+        "MAE_litres": 22.9606,
+        "RMSE_litres": 45.9651,
+        "R2": 0.7892,
+        "MedAE_litres": 10.5334
+      },
+      "test_metrics": {
+        "MAE_litres": 21.7836,
+        "RMSE_litres": 44.9242,
+        "R2": 0.8035,
+        "MedAE_litres": 10.1195
+      }
+    },
+    "HistGradientBoosting": {
+      "description": "HistGradientBoosting Regressor (max_iter=100, lr=0.05, max_depth=8, min_samples_leaf=15)",
+      "val_metrics": {
+        "MAE_litres": 24.9559,
+        "RMSE_litres": 55.9737,
+        "R2": 0.6875,
+        "MedAE_litres": 11.3769
+      },
+      "test_metrics": {
+        "MAE_litres": 24.8238,
+        "RMSE_litres": 64.3791,
+        "R2": 0.5965,
+        "MedAE_litres": 10.7522
+      }
+    },
+    "selected_best_model": "Random_Forest"
+  }
+}

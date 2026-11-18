@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine
 import models  # Ensures all models are registered before create_all
-from routes import auth, consumption, profile
+from routes import auth, consumption, profile, ml
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,6 +46,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(consumption.router)
+app.include_router(ml.router)
 
 
 @app.get("/")

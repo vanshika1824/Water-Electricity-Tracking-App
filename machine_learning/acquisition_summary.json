@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-11-15T11:55:15Z",
+  "downloads": [
+    {
+      "dataset": "UCI Individual Household Electric Power Consumption",
+      "url": "https://archive.ics.uci.edu/static/public/235/individual+household+electric+power+consumption.zip",
+      "local_path": "C:\\Users\\hp\\Water-Electricity-Tracking-App\\data\\raw\\electricity\\individual+household+electric+power+consumption.zip",
+      "size_bytes": 20640916,
+      "sha256": "9f84b46ade8a2d8e1286ec4b2b6c2987a45a755c59f263be3b3b3d10dfbda3ff",
+      "license": "CC BY 4.0"
+    },
+    {
+      "dataset": "HSB Living Lab Fixture-Level Household Water Consumption Dataset",
+      "url": "https://zenodo.org/api/records/22076411/files/HSB_Living_Lab_Data_Package.zip/content",
+      "local_path": "C:\\Users\\hp\\Water-Electricity-Tracking-App\\data\\raw\\water\\HSB_Living_Lab_Data_Package.zip",
+      "size_bytes": 6244502,
+      "sha256": "ff766b30d05e65c2477fc929d56a112d5b0775619075daa2bd6dd687c57c7c89",
+      "license": "CC BY 4.0",
+      "companion_files": [
+        {
+          "name": "verify_R5.py",
+          "sha256": "af1f32f9cc51535604a8e40cd3668194c84fa4034f655dfb5ee6c332476134a5"
+        },
+        {
+          "name": "verified_numbers_R5.json",
+          "sha256": "852b590441e6fda92ab32280586f2c91382654124f3b979719fa9dae25f9c306"
+        }
+      ]
+    }
+  ],
+  "extractions": {
+    "electricity": [
+      {
+        "relative_path": "household_power_consumption.txt",
+        "file_name": "household_power_consumption.txt",
+        "size_bytes": 132960755,
+        "size_mb": 126.8,
+        "sha256": "4259c9d7ece5dbee9ab8d53682baac68d791c864f0f64a52b4043cb3b90894b7",
+        "line_count": 2075260,
+        "header_sample": "Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;Sub_metering_3"
+      }
+    ],
+    "water": [
+      {
+        "relative_path": "DATA_DICTIONARY.txt",
+        "file_name": "DATA_DICTIONARY.txt",
+        "size_bytes": 7531,
+        "size_mb": 0.01,
+        "sha256": "6dd0a5fdaee4472f05f08deb7561624c4267e576f7f3dea45758ab5014408720",
+        "line_count": 180,
+        "header_sample": "WATER CONSUMPTION DATASET - DATA DICTIONARY"
+      },
+      {
+        "relative_path": "HSB_Living_Lab_Water_Consumption_Anonymized.csv",
+        "file_name": "HSB_Living_Lab_Water_Consumption_Anonymized.csv",
+        "size_bytes": 85140852,
+        "size_mb": 81.2,
+        "sha256": "e9b8f34245b5cfb2b43d8fe3274056bcc5f3dca0cbf8904a6c4227ddd42d0be8",
+        "line_count": 652316,
+        "header_sample": "timestamp;date;hour;day_of_week;day_name;month;year;sensor_id;apartment;cluster_name;room_number;room_type;type;attached_to;value;aggregated_value"
+      },
+      {
+        "relative_path": "README.txt",
+        "file_name": "README.txt",
+        "size_bytes": 3798,
+        "size_mb": 0.0,
+        "sha256": "a2726d9189e870cf347a0e1e865f392295d9f92a584ac4a915200f21f0b51582",
+        "line_count": 88,
+        "header_sample": "================================================================================"
+      },
+      {
+        "relative_path": "scripts\\anonymize_data.py",
+        "file_name": "anonymize_data.py",
+        "size_bytes": 5803,
+        "size_mb": 0.01,
+        "sha256": "f92ffc50e29b4509301294a60f8de53df59fa2860d2d753d68fd0cfb066df907",
+        "line_count": 191,
+        "header_sample": "#!/usr/bin/env python3"
+      },
+      {
+        "relative_path": "scripts\\generate_figures.py",
+        "file_name": "generate_figures.py",
+        "size_bytes": 31660,
+        "size_mb": 0.03,
+        "sha256": "dd9f5d9c7da87617d9745f3be0e2d92f93a496e69eed544f0b1a298147835700",
+        "line_count": 779,
+        "header_sample": "#!/usr/bin/env python3"
+      },
+      {
+        "relative_path": "scripts\\water_analysis.py",
+        "file_name": "water_analysis.py",
+        "size_bytes": 27310,
+        "size_mb": 0.03,
+        "sha256": "1c50feb216eba855a6e2c3e7a99d301835c1ca0d567ce4ffd731e6d225186bd4",
+        "line_count": 657,
+        "header_sample": "\"\"\""
+      }
+    ]
+  }
+}

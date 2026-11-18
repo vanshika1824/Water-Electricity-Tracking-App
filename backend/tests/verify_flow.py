@@ -7,6 +7,10 @@ import sys
 import time
 import os
 
+# Ensure KIVY_HOME for Windows sandbox safety
+if "KIVY_HOME" not in os.environ:
+    os.environ["KIVY_HOME"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".kivy"))
+
 # Ensure paths
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "mobile")))
 
@@ -107,8 +111,20 @@ def main():
     assert water_ok, f"Water save failed: {water_res}"
     print(f"Water record ID: {water_res['id']}, Litres: {water_res['monthly_consumption_litres']}")
 
+    print("\n=== STEP 8: Testing Consumption Summary & Analytics via ApiClient ===")
+    sum_ok, sum_res = client.get_consumption_summary()
+    print(f"Summary fetch status: {sum_ok}")
+    assert sum_ok, f"Summary fetch failed: {sum_res}"
+    assert sum_res["has_profile"] is True
+    assert sum_res["electricity"]["latest_record"]["monthly_consumption_kwh"] == 310.5
+    assert sum_res["electricity"]["per_person_kwh"] == round(310.5 / 4, 2)
+    assert sum_res["water"]["latest_record"]["monthly_consumption_litres"] == 13500.0
+    assert sum_res["water"]["per_person_litres_monthly"] == round(13500.0 / 4, 2)
+    assert sum_res["water"]["per_person_litres_daily"] == round(13500.0 / (4 * 30), 2)
+    print(f"Summary verified: Per-person kWh: {sum_res['electricity']['per_person_kwh']}, Daily LPCD: {sum_res['water']['per_person_litres_daily']}")
+
     print("\n==========================================")
-    print("ALL PHASE 1 MVP FLOW CHECKS PASSED 100%!")
+    print("ALL MVP & PHASE 2 FLOW CHECKS PASSED 100%!")
     print("==========================================")
 
 if __name__ == "__main__":
