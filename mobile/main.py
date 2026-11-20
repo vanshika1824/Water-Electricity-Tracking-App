@@ -6,20 +6,26 @@ Final-Year Major Project MVP Foundation
 import os
 import sys
 
-# Ensure KIVY_HOME resides inside the workspace for Windows sandbox compatibility
-if "KIVY_HOME" not in os.environ:
-    os.environ["KIVY_HOME"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".kivy"))
+from kivy.utils import platform
 
 # Ensure mobile packages can import cleanly
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-# Configure portrait mobile dimensions before Window initialization
-from kivy.config import Config
-Config.set("graphics", "width", "400")
-Config.set("graphics", "height", "850")
-Config.set("graphics", "resizable", "1")
+# Configure desktop simulated portrait window (desktop only; Android uses native phone resolution)
+if platform != "android":
+    if "KIVY_HOME" not in os.environ:
+        os.environ["KIVY_HOME"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".kivy"))
 
-from kivy.core.window import Window
+    from kivy.config import Config
+    Config.set("graphics", "width", "400")
+    Config.set("graphics", "height", "850")
+    Config.set("graphics", "resizable", "1")
+
+    from kivy.core.window import Window
+    Window.size = (400, 850)
+else:
+    from kivy.core.window import Window
+
 from kivy.uix.screenmanager import ScreenManager, SlideTransition
 from kivymd.app import MDApp
 
@@ -36,8 +42,6 @@ from screens import (
     WelcomeScreen,
 )
 
-# Portrait mobile viewport for smartphone simulation on laptop/desktop (approx 400 x 850)
-Window.size = (400, 850)
 Window.clearcolor = theme_manager.get("bg_screen")
 
 

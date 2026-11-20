@@ -8,9 +8,10 @@ import json
 import os
 import weakref
 from typing import Any, Callable, Dict, List, Optional
+from kivy.utils import platform
 
-# Ensure KIVY_HOME points to workspace .kivy before importing kivy modules
-if "KIVY_HOME" not in os.environ:
+# Ensure KIVY_HOME points to workspace .kivy before importing kivy modules (desktop only)
+if platform != "android" and "KIVY_HOME" not in os.environ:
     os.environ["KIVY_HOME"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".kivy"))
 
 from kivy.core.window import Window

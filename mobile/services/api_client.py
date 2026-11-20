@@ -1,18 +1,43 @@
 import json
+import os
 from typing import Any, Dict, Optional, Tuple
 import requests
+
+# ==============================================================================
+# AQUAWATT BACKEND API ENDPOINT CONFIGURATION
+# ==============================================================================
+# Default for local laptop / desktop development is http://127.0.0.1:8000
+#
+# FOR PHYSICAL ANDROID DEVICES:
+# 127.0.0.1 refers to the phone itself and will NOT reach your laptop backend.
+# To connect from an Android phone:
+#   1. Connect phone and laptop to the same Wi-Fi network.
+#   2. Find your laptop's local LAN IPv4 address (run `ipconfig` in Windows PowerShell,
+#      look for IPv4 Address such as 192.168.1.X or 10.0.0.X).
+#   3. Ensure FastAPI backend is running and bound to all interfaces:
+#      uvicorn app.main:app --host 0.0.0.0 --port 8000
+#   4. Configure the API URL:
+#      - Option A (Env Var): Set AQUAWATT_API_BASE_URL="http://<YOUR_LAN_IP>:8000"
+#      - Option B (Code Config): Update DEFAULT_API_BASE_URL below before building APK.
+#      - Option C (Runtime): Call api_client.set_base_url("http://<YOUR_LAN_IP>:8000")
+# ==============================================================================
+DEFAULT_API_BASE_URL = os.environ.get("AQUAWATT_API_BASE_URL", "http://127.0.0.1:8000")
 
 
 class ApiClient:
     """Client for interacting with the FastAPI backend REST API."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:8000"):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: Optional[str] = None):
+        self.base_url = (base_url or DEFAULT_API_BASE_URL).rstrip("/")
         self.token: Optional[str] = None
         self.current_user: Optional[Dict[str, Any]] = None
         self.timeout = 8.0  # seconds
         self.session = requests.Session()
         self.session.trust_env = False
+
+    def set_base_url(self, new_url: str):
+        """Update backend API base URL at runtime."""
+        self.base_url = new_url.rstrip("/")
 
     def _headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -28,7 +53,7 @@ class ApiClient:
                 return True, "Backend is healthy and reachable"
             return False, f"Backend returned status {res.status_code}"
         except requests.exceptions.ConnectionError:
-            return False, "Cannot connect to backend server. Make sure FastAPI is running on http://127.0.0.1:8000"
+            return False, f"Cannot connect to backend server at {self.base_url}. Verify backend is running and reachable on your network."
         except Exception as e:
             return False, f"Connection error: {str(e)}"
 
