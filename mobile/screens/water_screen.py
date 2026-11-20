@@ -33,6 +33,8 @@ from widgets.glass_widgets import (
     Icon,
     KPICard,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
     show_success_popup,
 )
 
@@ -79,41 +81,33 @@ class WaterScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        main_split = BoxLayout(orientation="horizontal")
-
-        # 1. Left Sidebar
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="water",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header
+        header = MobileHeader(
+            title="Water Resource Tracking",
+            subtitle="Monitor consumption, LPCD & fixtures",
+            on_back=lambda: self._navigate("dashboard")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
-        # 2. Main Content
+        # Main Scrollable Content Area
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.content_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(18), dp(16), dp(18), dp(18)],
-            spacing=dp(12),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.content_box.bind(minimum_height=self.content_box.setter("height"))
 
-        # Header
-        header = GlassHeader(
-            title="Water Resource Management",
-            subtitle="Track residential water footprint, LPCD benchmarks, and conservation targets",
-            on_back=lambda: self._navigate("dashboard")
-        )
-        self.content_box.add_widget(header)
+        # Row 1: KPI Cards 1 & 2 (Current Month Footprint & Est. Cost)
+        self.kpi_row1 = BoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(78))
+        self.content_box.add_widget(self.kpi_row1)
 
-        # KPI Metrics Row
-        self.kpi_row = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(88))
-        self.content_box.add_widget(self.kpi_row)
+        # Row 2: KPI Cards 3 & 4 (Per Capita Daily LPCD & Active Fixtures)
+        self.kpi_row2 = BoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(78))
+        self.content_box.add_widget(self.kpi_row2)
 
         # Large Detailed Water Consumption Chart
         chart_points = [2800, 2700, 2950, 3200, 2900, 2850]
@@ -127,15 +121,12 @@ class WaterScreen(Screen):
             x_labels=["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
             y_max=4000.0,
             size_hint_y=None,
-            height=dp(240)
+            height=dp(220)
         )
         self.content_box.add_widget(self.chart)
 
-        # Split Bottom Row: Logging Form on Left (55%) + Historical Logs on Right (45%)
-        split_row = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None)
-
-        # Card 1: Log New Monthly Reading & Fixture/Habit Steppers
-        form_card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.55, None))
+        # Card 1: Log New Monthly Reading & Fixture/Habit Steppers (Stacked Full Width)
+        form_card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint_y=None)
         form_card.bind(minimum_height=form_card.setter("height"))
 
         f_hdr = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(24))
@@ -220,28 +211,23 @@ class WaterScreen(Screen):
         self.btn_submit.bind(on_release=self._handle_save_water)
         form_card.add_widget(self.btn_submit)
 
-        split_row.add_widget(form_card)
+        self.content_box.add_widget(form_card)
 
-        # Card 2: Water History Logs
-        self.history_card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.45, None))
+        # Card 2: Water History Logs (Stacked Full Width)
+        self.history_card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint_y=None)
         self.history_card.bind(minimum_height=self.history_card.setter("height"))
-        split_row.add_widget(self.history_card)
-
-        def _sync_row_height(*args):
-            h = max(form_card.minimum_height, self.history_card.minimum_height, dp(580))
-            form_card.height = h
-            self.history_card.height = h
-            split_row.height = h
-
-        form_card.bind(minimum_height=_sync_row_height)
-        self.history_card.bind(minimum_height=_sync_row_height)
-        split_row.height = dp(580)
-
-        self.content_box.add_widget(split_row)
+        self.content_box.add_widget(self.history_card)
 
         scroll.add_widget(self.content_box)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="water",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def on_pre_enter(self, *args):
@@ -260,7 +246,8 @@ class WaterScreen(Screen):
         threading.Thread(target=_bg, daemon=True).start()
 
     def _render_kpis(self):
-        self.kpi_row.clear_widgets()
+        self.kpi_row1.clear_widgets()
+        self.kpi_row2.clear_widgets()
         latest_val = self.water_records[0].get("monthly_consumption_litres", 2850.0) if self.water_records else 2850.0
         cost_val = round(latest_val * 0.10)
         daily_lpcd = round(latest_val / (4 * 30))  # Assuming standard 4-member household
@@ -273,9 +260,10 @@ class WaterScreen(Screen):
             icon_bg_color=theme_manager.get("accent_water_bg"),
             icon_color=theme_manager.get("accent_water"),
             trend_pct=-12.0,
-            bar_color=theme_manager.get("accent_water")
+            bar_color=theme_manager.get("accent_water"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi1)
+        self.kpi_row1.add_widget(kpi1)
 
         kpi2 = KPICard(
             title="Estimated Cost (@ ₹0.10/L)",
@@ -285,9 +273,10 @@ class WaterScreen(Screen):
             icon_bg_color=theme_manager.get("brand_surface"),
             icon_color=theme_manager.get("brand_primary"),
             trend_pct=-10.0,
-            bar_color=theme_manager.get("brand_primary")
+            bar_color=theme_manager.get("brand_primary"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi2)
+        self.kpi_row1.add_widget(kpi2)
 
         kpi3 = KPICard(
             title="Per Capita Daily (LPCD)",
@@ -297,9 +286,10 @@ class WaterScreen(Screen):
             icon_bg_color=theme_manager.get("accent_water_bg"),
             icon_color=theme_manager.get("accent_water"),
             trend_pct=-15.0,
-            bar_color=theme_manager.get("accent_water")
+            bar_color=theme_manager.get("accent_water"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi3)
+        self.kpi_row2.add_widget(kpi3)
 
         kpi4 = KPICard(
             title="Active Fixtures Tracked",
@@ -309,9 +299,10 @@ class WaterScreen(Screen):
             icon_bg_color=theme_manager.get("accent_elec_bg"),
             icon_color=theme_manager.get("accent_elec"),
             trend_pct=0.0,
-            bar_color=theme_manager.get("accent_elec")
+            bar_color=theme_manager.get("accent_elec"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi4)
+        self.kpi_row2.add_widget(kpi4)
 
     def _render_history_table(self):
         self.history_card.clear_widgets()

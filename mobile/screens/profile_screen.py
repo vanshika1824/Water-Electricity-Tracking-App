@@ -22,11 +22,11 @@ from widgets.glass_widgets import (
     CounterWidget,
     GlassButton,
     GlassCard,
-    GlassHeader,
     GlassInput,
-    GlassSidebar,
     Icon,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
     show_success_popup,
 )
 
@@ -59,43 +59,31 @@ class ProfileScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        # Main horizontal split: Sidebar on left + Content on right
-        main_split = BoxLayout(orientation="horizontal")
-
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="profile",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header
+        header = MobileHeader(
+            title="Household Profile",
+            subtitle="Configure residence & baseline occupancy",
+            on_back=lambda: self._navigate("dashboard")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.form_layout = BoxLayout(
             orientation="vertical",
-            padding=[dp(20), dp(18), dp(22), dp(20)],
-            spacing=dp(14),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.form_layout.bind(minimum_height=self.form_layout.setter("height"))
-
-        # Header
-        header = GlassHeader(
-            title="Household Profile",
-            subtitle="Configure your residence profile and baseline occupancy parameters",
-            on_back=lambda: self._navigate("dashboard")
-        )
-        self.form_layout.add_widget(header)
 
         # Card: Household Details
         card = GlassCard(
             variant="default",
             orientation="vertical",
-            padding=dp(18),
-            spacing=dp(12),
+            padding=dp(12),
+            spacing=dp(10),
             size_hint_y=None,
             radius=14
         )
@@ -226,8 +214,15 @@ class ProfileScreen(Screen):
         self.form_layout.add_widget(self.btn_submit)
 
         scroll.add_widget(self.form_layout)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="profile",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def _select_house_type(self, house_type: str):
@@ -244,9 +239,6 @@ class ProfileScreen(Screen):
 
     def on_pre_enter(self, *args):
         self.lbl_error.text = ""
-        if hasattr(self, "sidebar"):
-            self.sidebar.user_info = api_client.current_user or {}
-            self.sidebar._build_sidebar()
         # If user has an existing profile, prefill it in background thread
         if api_client.token:
             def _bg():

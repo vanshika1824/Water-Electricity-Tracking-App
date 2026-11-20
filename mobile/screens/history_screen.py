@@ -27,10 +27,10 @@ from services.theme_manager import theme_manager
 from widgets.glass_widgets import (
     GlassButton,
     GlassCard,
-    GlassHeader,
-    GlassSidebar,
     Icon,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
 )
 
 
@@ -61,45 +61,31 @@ class HistoryScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        main_split = BoxLayout(orientation="horizontal")
-
-        # 1. Left Sidebar
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="history",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header
+        header = MobileHeader(
+            title="Consumption Audit Log",
+            subtitle="Search, filter & inspect utility entries",
+            on_back=lambda: self._navigate("dashboard")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
-        # 2. Main Content
+        # Main Scrollable Content Area
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.content_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(18), dp(16), dp(18), dp(18)],
-            spacing=dp(12),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.content_box.bind(minimum_height=self.content_box.setter("height"))
 
-        # Header
-        header = GlassHeader(
-            title="Consumption Audit Log",
-            subtitle="Search, filter, and inspect verified historical utility meter entries",
-            on_back=lambda: self._navigate("dashboard")
-        )
-        self.content_box.add_widget(header)
-
-        # Filter & Search Action Bar
-        action_bar = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(38))
-
-        # Search Input
+        # Search Input (Full Width)
         search_box = BoxLayout(
             orientation="horizontal",
-            size_hint_x=0.45,
+            size_hint_y=None,
+            height=dp(38),
             padding=[dp(10), 0, dp(10), 0],
             spacing=dp(6)
         )
@@ -124,14 +110,14 @@ class HistoryScreen(Screen):
         self.txt_search.bind(text=self._on_search_text)
         search_box.add_widget(s_ic)
         search_box.add_widget(self.txt_search)
-        action_bar.add_widget(search_box)
+        self.content_box.add_widget(search_box)
 
-        # Filter Pills: All, Electricity, Water
-        pill_row = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_x=0.55)
+        # Filter Pills: All, Electricity, Water (Full Width Row)
+        pill_row = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(34))
 
-        self.btn_f_all = GlassButton(text="All Records", style="primary" if self.active_filter == "All" else "secondary", radius=8, height=dp(36))
-        self.btn_f_elec = GlassButton(text="Electricity", style="elec" if self.active_filter == "Electricity" else "secondary", radius=8, height=dp(36))
-        self.btn_f_water = GlassButton(text="Water", style="water" if self.active_filter == "Water" else "secondary", radius=8, height=dp(36))
+        self.btn_f_all = GlassButton(text="All Records", style="primary" if self.active_filter == "All" else "secondary", radius=8, height=dp(34))
+        self.btn_f_elec = GlassButton(text="Electricity", style="elec" if self.active_filter == "Electricity" else "secondary", radius=8, height=dp(34))
+        self.btn_f_water = GlassButton(text="Water", style="water" if self.active_filter == "Water" else "secondary", radius=8, height=dp(34))
 
         self.btn_f_all.bind(on_release=lambda *a: self._set_filter("All"))
         self.btn_f_elec.bind(on_release=lambda *a: self._set_filter("Electricity"))
@@ -140,18 +126,23 @@ class HistoryScreen(Screen):
         pill_row.add_widget(self.btn_f_all)
         pill_row.add_widget(self.btn_f_elec)
         pill_row.add_widget(self.btn_f_water)
-        action_bar.add_widget(pill_row)
-
-        self.content_box.add_widget(action_bar)
+        self.content_box.add_widget(pill_row)
 
         # Table Container
-        self.table_card = GlassCard(orientation="vertical", padding=dp(16), spacing=dp(8), size_hint_y=None)
+        self.table_card = GlassCard(orientation="vertical", padding=dp(10), spacing=dp(6), size_hint_y=None)
         self.table_card.bind(minimum_height=self.table_card.setter("height"))
         self.content_box.add_widget(self.table_card)
 
         scroll.add_widget(self.content_box)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="history",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def _style_input(self, inst):
@@ -198,18 +189,17 @@ class HistoryScreen(Screen):
     def _render_records(self):
         self.table_card.clear_widgets()
 
-        # Table Header
+        # Table Header (Mobile 4-Column Layout)
         th = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(26), padding=[dp(8), 0, dp(8), 0])
         th.bind(
             pos=lambda inst, *a: self._style_th(inst),
             size=lambda inst, *a: self._style_th(inst)
         )
-        h1 = Label(text="Date Logged", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.25, halign="left")
-        h2 = Label(text="Resource", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.20, halign="left")
-        h3 = Label(text="Consumption", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.22, halign="left")
-        h4 = Label(text="Est. Cost (₹)", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.18, halign="left")
-        h5 = Label(text="Notes / Details", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.15, halign="left")
-        for h in [h1, h2, h3, h4, h5]:
+        h1 = Label(text="Date", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.30, halign="left")
+        h2 = Label(text="Type", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.26, halign="left")
+        h3 = Label(text="Usage", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.24, halign="left")
+        h4 = Label(text="Est. Cost", font_size="11sp", bold=True, color=theme_manager.get("text_secondary"), size_hint_x=0.20, halign="left")
+        for h in [h1, h2, h3, h4]:
             h.bind(size=h.setter("text_size"))
             th.add_widget(h)
         self.table_card.add_widget(th)
@@ -282,31 +272,27 @@ class HistoryScreen(Screen):
                     size=lambda inst, *a: self._style_zebra(inst)
                 )
 
-            d_lbl = Label(text=item["date"], font_size="12sp", color=theme_manager.get("text_primary"), size_hint_x=0.25, halign="left")
+            d_lbl = Label(text=item["date"], font_size="11sp", color=theme_manager.get("text_primary"), size_hint_x=0.30, halign="left")
             d_lbl.bind(size=d_lbl.setter("text_size"))
 
             # Type badge with icon
-            type_box = BoxLayout(orientation="horizontal", spacing=dp(4), size_hint_x=0.20)
-            t_ic = Icon(icon_name=item["icon"], font_size="14sp", color=item["color"])
-            t_lbl = Label(text=item["type"], font_size="12sp", bold=True, color=item["color"], halign="left")
+            type_box = BoxLayout(orientation="horizontal", spacing=dp(3), size_hint_x=0.26)
+            t_ic = Icon(icon_name=item["icon"], font_size="13sp", color=item["color"])
+            t_lbl = Label(text=item["type"], font_size="11sp", bold=True, color=item["color"], halign="left")
             t_lbl.bind(size=t_lbl.setter("text_size"))
             type_box.add_widget(t_ic)
             type_box.add_widget(t_lbl)
 
-            v_lbl = Label(text=item["val_str"], font_size="12sp", bold=True, color=theme_manager.get("text_primary"), size_hint_x=0.22, halign="left")
+            v_lbl = Label(text=item["val_str"], font_size="11sp", bold=True, color=theme_manager.get("text_primary"), size_hint_x=0.24, halign="left")
             v_lbl.bind(size=v_lbl.setter("text_size"))
 
-            c_lbl = Label(text=item["cost_str"], font_size="12sp", color=theme_manager.get("brand_primary"), size_hint_x=0.18, halign="left")
+            c_lbl = Label(text=item["cost_str"], font_size="11sp", color=theme_manager.get("brand_primary"), size_hint_x=0.20, halign="left")
             c_lbl.bind(size=c_lbl.setter("text_size"))
-
-            n_lbl = Label(text=item["notes"][:28], font_size="10.5sp", color=theme_manager.get("text_muted"), size_hint_x=0.15, halign="left")
-            n_lbl.bind(size=n_lbl.setter("text_size"))
 
             r_box.add_widget(d_lbl)
             r_box.add_widget(type_box)
             r_box.add_widget(v_lbl)
             r_box.add_widget(c_lbl)
-            r_box.add_widget(n_lbl)
             self.table_card.add_widget(r_box)
 
     def _style_th(self, inst):

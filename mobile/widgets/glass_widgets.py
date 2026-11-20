@@ -220,11 +220,12 @@ class KPICard(GlassCard):
         bar_color=None,
         **kwargs
     ):
+        sz_hint = kwargs.pop("size_hint", (1, 1))
         super().__init__(
             orientation="horizontal",
-            padding=[dp(10), dp(10), dp(8), dp(10)],
-            spacing=dp(6),
-            size_hint=(0.25, 1),
+            padding=[dp(8), dp(8), dp(6), dp(8)],
+            spacing=dp(5),
+            size_hint=sz_hint,
             radius=12,
             **kwargs
         )
@@ -233,11 +234,11 @@ class KPICard(GlassCard):
         self.icon_color = icon_color
 
         # 1. Circular Icon Badge
-        badge_box = BoxLayout(size_hint=(None, 1), width=dp(36))
-        self.badge = Widget(size_hint=(None, None), size=(dp(32), dp(32)), pos_hint={"center_y": 0.5})
+        badge_box = BoxLayout(size_hint=(None, 1), width=dp(32))
+        self.badge = Widget(size_hint=(None, None), size=(dp(28), dp(28)), pos_hint={"center_y": 0.5})
         self.badge.bind(pos=self._update_badge, size=self._update_badge)
 
-        self.ic_widget = Icon(icon_name=icon_name, font_size="17sp", color=icon_color)
+        self.ic_widget = Icon(icon_name=icon_name, font_size="15sp", color=icon_color)
         self.badge.add_widget(self.ic_widget)
         badge_box.add_widget(self.badge)
         self.add_widget(badge_box)
@@ -247,10 +248,10 @@ class KPICard(GlassCard):
 
         self.lbl_title = Label(
             text=title,
-            font_size="11sp",
+            font_size="10sp",
             color=theme_manager.get("text_secondary"),
             size_hint_y=None,
-            height=dp(16),
+            height=dp(14),
             halign="left",
             valign="middle",
             shorten=True,
@@ -262,11 +263,11 @@ class KPICard(GlassCard):
         display_val = f"{value} {unit}".strip()
         self.lbl_val = Label(
             text=display_val,
-            font_size="16.5sp",
+            font_size="14.5sp",
             bold=True,
             color=theme_manager.get("text_primary"),
             size_hint_y=None,
-            height=dp(24),
+            height=dp(20),
             halign="left",
             valign="middle"
         )
@@ -287,11 +288,11 @@ class KPICard(GlassCard):
 
         self.lbl_trend = Label(
             text=trend_txt,
-            font_size="9.5sp",
+            font_size="8.5sp",
             bold=True,
             color=trend_col,
             size_hint_y=None,
-            height=dp(14),
+            height=dp(13),
             halign="left",
             valign="middle",
             shorten=True
@@ -806,28 +807,30 @@ class CounterWidget(BoxLayout):
 
         self.lbl_title = Label(
             text=label_text,
-            font_size="13sp",
+            font_size="12sp",
             color=theme_manager.get("text_primary"),
-            size_hint_x=0.65,
+            size_hint_x=1,
             halign="left",
-            valign="middle"
+            valign="middle",
+            shorten=True,
+            shorten_from="right"
         )
         self.lbl_title.bind(size=self.lbl_title.setter("text_size"))
         self.add_widget(self.lbl_title)
 
-        ctrl = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_x=0.35)
+        ctrl = BoxLayout(orientation="horizontal", spacing=dp(4), size_hint=(None, 1), width=dp(114))
 
-        self.btn_minus = GlassButton(text="−", style="secondary", radius=8, size_hint=(None, None), size=(dp(34), dp(34)))
+        self.btn_minus = GlassButton(text="−", style="secondary", radius=8, size_hint=(None, None), size=(dp(32), dp(32)))
         self.btn_minus.bind(on_release=self._decrement)
         ctrl.add_widget(self.btn_minus)
 
         self.val_badge = Label(
             text=str(self._value),
             bold=True,
-            font_size="14sp",
+            font_size="13sp",
             color=theme_manager.get("text_primary"),
             size_hint=(None, None),
-            size=(dp(42), dp(34)),
+            size=(dp(38), dp(32)),
             halign="center",
             valign="middle"
         )
@@ -835,7 +838,7 @@ class CounterWidget(BoxLayout):
         self.val_badge.bind(pos=self._update_badge_bg, size=self._update_badge_bg)
         ctrl.add_widget(self.val_badge)
 
-        self.btn_plus = GlassButton(text="+", style="secondary", radius=8, size_hint=(None, None), size=(dp(34), dp(34)))
+        self.btn_plus = GlassButton(text="+", style="secondary", radius=8, size_hint=(None, None), size=(dp(32), dp(32)))
         self.btn_plus.bind(on_release=self._increment)
         ctrl.add_widget(self.btn_plus)
 
@@ -1341,6 +1344,261 @@ class GlassSidebar(BoxLayout):
     def _handle_sign_out(self):
         if self.on_sign_out:
             self.on_sign_out()
+
+
+class MobileBottomNav(BoxLayout):
+    """
+    Native bottom navigation bar for mobile portrait view (400x850).
+    5 primary navigation destinations:
+    - Dashboard (Home)
+    - Electricity (Electric)
+    - Water (Water)
+    - History (History)
+    - Profile (Profile)
+    Fixed at the bottom of the viewport with responsive active indicator.
+    """
+
+    def __init__(self, active_screen: str = "dashboard", on_navigate=None, **kwargs):
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(56),
+            padding=[dp(4), dp(2), dp(4), dp(2)],
+            spacing=dp(2),
+            **kwargs
+        )
+        self.active_screen = active_screen
+        self.on_navigate = on_navigate
+        self.bind(pos=self._update_nav_bg, size=self._update_nav_bg)
+        theme_manager.register_listener(self._on_theme_changed)
+        self._build_tabs()
+
+    def _update_nav_bg(self, *args):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(*theme_manager.get("bg_sidebar"))
+            Rectangle(pos=self.pos, size=self.size)
+            Color(*theme_manager.get("border_card"))
+            Line(points=[self.x, self.top, self.right, self.top], width=1.0)
+
+    def _on_theme_changed(self):
+        self._build_tabs()
+
+    def _build_tabs(self):
+        self.clear_widgets()
+        tabs = [
+            ("dashboard", "view-dashboard", "Home"),
+            ("electricity", "flash", "Electric"),
+            ("water", "water", "Water"),
+            ("history", "history", "History"),
+            ("profile", "account-circle-outline", "Profile"),
+        ]
+
+        for screen_key, icon_name, label_text in tabs:
+            is_active = (self.active_screen == screen_key)
+            item_box = RelativeLayout(size_hint=(0.2, 1))
+
+            content = BoxLayout(
+                orientation="vertical",
+                spacing=dp(2),
+                pos_hint={"center_x": 0.5, "center_y": 0.5},
+                size_hint=(1, 1),
+                padding=[0, dp(4), 0, dp(4)]
+            )
+
+            icon_color = theme_manager.get("brand_primary") if is_active else theme_manager.get("text_muted")
+            text_color = theme_manager.get("brand_primary") if is_active else theme_manager.get("text_muted")
+
+            ic = Icon(
+                icon_name=icon_name,
+                font_size="20sp",
+                color=icon_color,
+                pos_hint={"center_x": 0.5}
+            )
+            lbl = Label(
+                text=label_text,
+                font_size="10sp",
+                bold=is_active,
+                color=text_color,
+                halign="center",
+                size_hint_y=None,
+                height=dp(14)
+            )
+            lbl.bind(size=lbl.setter("text_size"))
+
+            content.add_widget(ic)
+            content.add_widget(lbl)
+            item_box.add_widget(content)
+
+            btn = Button(
+                background_normal="",
+                background_color=(0, 0, 0, 0),
+                size_hint=(1, 1)
+            )
+            btn.bind(on_release=lambda *a, k=screen_key: self._handle_click(k))
+            item_box.add_widget(btn)
+
+            self.add_widget(item_box)
+
+    def _handle_click(self, key: str):
+        if self.on_navigate:
+            self.on_navigate(key)
+
+
+class MobileHeader(BoxLayout):
+    """
+    Mobile top header bar:
+    - Left: Back button (if on_back) or AquaWatt Droplet Logo
+    - Center/Title: Screen title + optional subtitle
+    - Right: Theme toggle icon button (Sun/Moon) + optional action (e.g. Settings or Sign Out)
+    """
+
+    def __init__(
+        self,
+        title: str = "AquaWatt",
+        subtitle: str = "",
+        on_back=None,
+        on_settings=None,
+        on_sign_out=None,
+        **kwargs
+    ):
+        super().__init__(
+            orientation="horizontal",
+            size_hint=(1, None),
+            height=dp(50),
+            padding=[dp(12), dp(4), dp(12), dp(4)],
+            spacing=dp(8),
+            **kwargs
+        )
+        self.header_title = title
+        self.subtitle = subtitle
+        self.on_back = on_back
+        self.on_settings = on_settings
+        self.on_sign_out = on_sign_out
+
+        self.bind(pos=self._update_bg, size=self._update_bg)
+        theme_manager.register_listener(self._on_theme_changed)
+        self._build_header()
+
+    def _update_bg(self, *args):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            Color(*theme_manager.get("bg_screen"))
+            Rectangle(pos=self.pos, size=self.size)
+            Color(*theme_manager.get("border_card"))
+            Line(points=[self.x, self.y, self.right, self.y], width=0.8)
+
+    def _on_theme_changed(self):
+        self._build_header()
+
+    def _build_header(self):
+        self.clear_widgets()
+
+        # Left section: Back button OR AquaWatt Logo
+        if self.on_back:
+            left_box = RelativeLayout(size_hint=(None, None), size=(dp(34), dp(34)), pos_hint={"center_y": 0.5})
+            ic_back = Icon(
+                icon_name="arrow-left",
+                font_size="19sp",
+                color=theme_manager.get("text_primary"),
+                pos_hint={"center_x": 0.5, "center_y": 0.5}
+            )
+            btn_back = Button(background_normal="", background_color=(0, 0, 0, 0), size_hint=(1, 1))
+            btn_back.bind(on_release=lambda *a: self.on_back())
+            left_box.add_widget(ic_back)
+            left_box.add_widget(btn_back)
+            self.add_widget(left_box)
+        else:
+            logo_badge = CircularBadge(
+                icon_name="lightning-bolt",
+                bg_color=theme_manager.get("brand_primary"),
+                icon_color=(1, 1, 1, 1),
+                diameter=dp(30),
+                icon_size="16sp"
+            )
+            self.add_widget(logo_badge)
+
+        # Title column
+        title_col = BoxLayout(orientation="vertical", spacing=0, size_hint_x=1)
+        self.lbl_t = Label(
+            text=self.header_title,
+            bold=True,
+            font_size="16sp",
+            color=theme_manager.get("text_primary"),
+            halign="left",
+            valign="middle",
+            shorten=True,
+            shorten_from="right"
+        )
+        self.lbl_t.bind(size=self.lbl_t.setter("text_size"))
+        title_col.add_widget(self.lbl_t)
+
+        if self.subtitle:
+            self.lbl_sub = Label(
+                text=self.subtitle,
+                font_size="10sp",
+                color=theme_manager.get("text_muted"),
+                halign="left",
+                valign="top",
+                shorten=True,
+                shorten_from="right"
+            )
+            self.lbl_sub.bind(size=self.lbl_sub.setter("text_size"))
+            title_col.add_widget(self.lbl_sub)
+
+        self.add_widget(title_col)
+
+        # Right action controls
+        right_box = BoxLayout(orientation="horizontal", spacing=dp(4), size_hint=(None, 1))
+
+        # 1. Theme toggle button (Sun/Moon)
+        t_box = RelativeLayout(size_hint=(None, None), size=(dp(34), dp(34)), pos_hint={"center_y": 0.5})
+        theme_icon_name = "weather-sunny" if not theme_manager.is_dark else "weather-night"
+        theme_icon_color = (245 / 255, 158 / 255, 11 / 255, 1.0) if not theme_manager.is_dark else (148 / 255, 163 / 255, 184 / 255, 1.0)
+        t_ic = Icon(
+            icon_name=theme_icon_name,
+            font_size="18sp",
+            color=theme_icon_color,
+            pos_hint={"center_x": 0.5, "center_y": 0.5}
+        )
+        t_btn = Button(background_normal="", background_color=(0, 0, 0, 0), size_hint=(1, 1))
+        t_btn.bind(on_release=lambda *a: theme_manager.toggle_theme())
+        t_box.add_widget(t_ic)
+        t_box.add_widget(t_btn)
+        right_box.add_widget(t_box)
+
+        # 2. Settings button (if on_settings)
+        if self.on_settings:
+            s_box = RelativeLayout(size_hint=(None, None), size=(dp(34), dp(34)), pos_hint={"center_y": 0.5})
+            s_ic = Icon(
+                icon_name="cog-outline",
+                font_size="18sp",
+                color=theme_manager.get("text_secondary"),
+                pos_hint={"center_x": 0.5, "center_y": 0.5}
+            )
+            s_btn = Button(background_normal="", background_color=(0, 0, 0, 0), size_hint=(1, 1))
+            s_btn.bind(on_release=lambda *a: self.on_settings())
+            s_box.add_widget(s_ic)
+            s_box.add_widget(s_btn)
+            right_box.add_widget(s_box)
+
+        # 3. Sign out button (if on_sign_out)
+        if self.on_sign_out:
+            o_box = RelativeLayout(size_hint=(None, None), size=(dp(34), dp(34)), pos_hint={"center_y": 0.5})
+            o_ic = Icon(
+                icon_name="logout-variant",
+                font_size="18sp",
+                color=theme_manager.get("text_muted"),
+                pos_hint={"center_x": 0.5, "center_y": 0.5}
+            )
+            o_btn = Button(background_normal="", background_color=(0, 0, 0, 0), size_hint=(1, 1))
+            o_btn.bind(on_release=lambda *a: self.on_sign_out())
+            o_box.add_widget(o_ic)
+            o_box.add_widget(o_btn)
+            right_box.add_widget(o_box)
+
+        self.add_widget(right_box)
+
 
 
 def show_success_popup(title: str, message: str, on_continue=None):

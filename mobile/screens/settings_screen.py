@@ -20,11 +20,11 @@ from services.theme_manager import theme_manager
 from widgets.glass_widgets import (
     GlassButton,
     GlassCard,
-    GlassHeader,
     GlassInput,
-    GlassSidebar,
     Icon,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
     show_success_popup,
 )
 
@@ -47,43 +47,31 @@ class SettingsScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        # Main horizontal split: Sidebar on left + Content on right
-        main_split = BoxLayout(orientation="horizontal")
-
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="settings",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header
+        header = MobileHeader(
+            title="Settings & System",
+            subtitle="Configure theme, billing tariffs & diagnostics",
+            on_back=lambda: self._navigate("dashboard")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.content_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(20), dp(18), dp(22), dp(20)],
-            spacing=dp(16),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.content_box.bind(minimum_height=self.content_box.setter("height"))
 
-        # 1. Header
-        header = GlassHeader(
-            title="Settings & Preferences",
-            subtitle="Configure theme appearance, utility billing tariffs, and system diagnostics",
-            on_back=lambda: self._navigate("dashboard")
-        )
-        self.content_box.add_widget(header)
-
-        # 2. Section: Theme & Appearance Card
+        # 1. Section: Theme & Appearance Card
         theme_card = GlassCard(
             variant="default",
             orientation="vertical",
-            padding=dp(18),
-            spacing=dp(12),
+            padding=dp(12),
+            spacing=dp(10),
             size_hint_y=None,
             radius=14
         )
@@ -167,8 +155,9 @@ class SettingsScreen(Screen):
         lbl_tariff_info.bind(size=lbl_tariff_info.setter("text_size"))
         tariff_card.add_widget(lbl_tariff_info)
 
-        # Tariff Input Row
-        tariffs_row = BoxLayout(orientation="horizontal", spacing=dp(14), size_hint_y=None, height=dp(72))
+        # Tariff Inputs (Stacked for clean mobile layout)
+        tariffs_col = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None)
+        tariffs_col.bind(minimum_height=tariffs_col.setter("height"))
         
         self.input_elec_rate = GlassInput(
             label_text="Electricity Tariff (₹ per kWh)",
@@ -176,7 +165,7 @@ class SettingsScreen(Screen):
             icon_name="flash",
             default_val=str(theme_manager.electricity_tariff)
         )
-        tariffs_row.add_widget(self.input_elec_rate)
+        tariffs_col.add_widget(self.input_elec_rate)
 
         self.input_water_rate = GlassInput(
             label_text="Water Tariff (₹ per Litre)",
@@ -184,8 +173,8 @@ class SettingsScreen(Screen):
             icon_name="water",
             default_val=str(theme_manager.water_tariff)
         )
-        tariffs_row.add_widget(self.input_water_rate)
-        tariff_card.add_widget(tariffs_row)
+        tariffs_col.add_widget(self.input_water_rate)
+        tariff_card.add_widget(tariffs_col)
 
         # Tariff Save Button & Status Label
         save_tariff_box = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(42))
@@ -193,7 +182,7 @@ class SettingsScreen(Screen):
             text="Save Tariff Rates",
             style="elec",
             radius=12,
-            size_hint_x=0.4
+            size_hint_x=0.5
         )
         self.btn_save_tariffs.bind(on_release=self._handle_save_tariffs)
         save_tariff_box.add_widget(self.btn_save_tariffs)
@@ -202,7 +191,7 @@ class SettingsScreen(Screen):
             text="",
             font_size="12sp",
             color=theme_manager.get("brand_primary"),
-            size_hint_x=0.6,
+            size_hint_x=0.5,
             halign="left",
             valign="middle"
         )
@@ -237,6 +226,7 @@ class SettingsScreen(Screen):
         h_acc.add_widget(t_acc)
         account_card.add_widget(h_acc)
 
+        user_info = api_client.current_user or {}
         user_name = user_info.get("full_name") or user_info.get("email", "Resident")
         user_email = user_info.get("email", "user@example.com")
         self.lbl_user_details = Label(
@@ -328,14 +318,18 @@ class SettingsScreen(Screen):
         self.content_box.add_widget(diag_card)
 
         scroll.add_widget(self.content_box)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="settings",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def on_pre_enter(self, *args):
-        if hasattr(self, "sidebar"):
-            self.sidebar.user_info = api_client.current_user or {}
-            self.sidebar._build_sidebar()
         if hasattr(self, "lbl_user_details") and api_client.current_user:
             u = api_client.current_user
             name = u.get("full_name") or u.get("email", "Resident")

@@ -36,6 +36,8 @@ from widgets.glass_widgets import (
     Icon,
     KPICard,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
     ProgressBarWidget,
 )
 
@@ -178,127 +180,133 @@ class DashboardScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        # Main horizontal split: Sidebar on left + Content on right
-        main_split = BoxLayout(orientation="horizontal")
-
-        # 1. Left Navigation Sidebar
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="dashboard",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header with logo, title, theme toggle, and settings cog
+        header = MobileHeader(
+            title="AquaWatt",
+            subtitle="Smart Energy & Water",
+            on_settings=lambda: self._navigate("settings")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
-        # 2. Main Right Content Area
+        # Main Scrollable Content Area
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.content_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(18), dp(16), dp(18), dp(18)],
-            spacing=dp(12),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.content_box.bind(minimum_height=self.content_box.setter("height"))
 
-        # Top Header Bar
+        # 1. Top Greeting Card
         self._build_top_header()
 
-        # Row 1: Four KPI Cards Container
-        self.kpi_row = BoxLayout(
+        # 2. Row 1: KPI Cards 1 & 2 (Electricity & Water)
+        self.kpi_row1 = BoxLayout(
             orientation="horizontal",
-            spacing=dp(10),
+            spacing=dp(8),
             size_hint_y=None,
-            height=dp(88)
+            height=dp(78)
         )
-        self.content_box.add_widget(self.kpi_row)
+        self.content_box.add_widget(self.kpi_row1)
 
-        # Row 2: Charts and Recent Activity Container
-        self.row2 = BoxLayout(
+        # 3. Row 2: KPI Cards 3 & 4 (Est. Elec Cost & Est. Water Cost)
+        self.kpi_row2 = BoxLayout(
             orientation="horizontal",
-            spacing=dp(10),
+            spacing=dp(8),
             size_hint_y=None,
-            height=dp(250)
+            height=dp(78)
         )
-        self.content_box.add_widget(self.row2)
+        self.content_box.add_widget(self.kpi_row2)
 
-        # Row 3: Bottom Widgets (Comparison, Budget, Prediction)
-        self.row3 = BoxLayout(
-            orientation="horizontal",
-            spacing=dp(10),
-            size_hint_y=None,
-            height=dp(190)
-        )
-        self.content_box.add_widget(self.row3)
+        # 4. Electricity Consumption Chart Container
+        self.chart_elec_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(220))
+        self.content_box.add_widget(self.chart_elec_box)
+
+        # 5. Water Consumption Chart Container
+        self.chart_water_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(220))
+        self.content_box.add_widget(self.chart_water_box)
+
+        # 6. Recent Activity Container
+        self.recent_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(185))
+        self.content_box.add_widget(self.recent_box)
+
+        # 7. Household Comparison Container
+        self.comp_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(160))
+        self.content_box.add_widget(self.comp_box)
+
+        # 8. Monthly Budget Progress Container
+        self.budget_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(155))
+        self.content_box.add_widget(self.budget_box)
+
+        # 9. Prediction Container
+        self.pred_box = BoxLayout(orientation="vertical", size_hint_y=None, height=dp(140))
+        self.content_box.add_widget(self.pred_box)
 
         scroll.add_widget(self.content_box)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="dashboard",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def _build_top_header(self):
-        hdr = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(52), spacing=dp(10))
+        banner = GlassCard(
+            variant="elevated",
+            orientation="vertical",
+            padding=[dp(12), dp(10), dp(12), dp(10)],
+            spacing=dp(2),
+            size_hint_y=None,
+            height=dp(68),
+            radius=12
+        )
 
-        # Left Greeting
-        g_box = BoxLayout(orientation="vertical", spacing=dp(1), size_hint_x=1)
-        g_title_row = BoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(28))
+        title_row = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(24))
         self.lbl_greeting = Label(
             text="Good Morning, Resident!",
             bold=True,
-            font_size="20sp",
+            font_size="15.5sp",
             color=theme_manager.get("text_primary"),
-            size_hint=(None, 1),
+            size_hint_x=1,
             halign="left",
-            valign="middle"
+            valign="middle",
+            shorten=True,
+            shorten_from="right"
         )
-        self.lbl_greeting.bind(texture_size=lambda inst, val: setattr(inst, "width", val[0]))
-        g_title_row.add_widget(self.lbl_greeting)
+        self.lbl_greeting.bind(size=self.lbl_greeting.setter("text_size"))
+        title_row.add_widget(self.lbl_greeting)
 
-        self.wave_ic = Icon(icon_name="hand-wave", font_size="20sp", color=theme_manager.get("accent_amber"), pos_hint={"center_y": 0.5})
-        g_title_row.add_widget(self.wave_ic)
-        g_title_row.add_widget(BoxLayout(size_hint_x=1))
-        g_box.add_widget(g_title_row)
+        self.wave_ic = Icon(icon_name="hand-wave", font_size="16sp", color=theme_manager.get("accent_amber"), pos_hint={"center_y": 0.5})
+        title_row.add_widget(self.wave_ic)
+
+        now_str = datetime.now().strftime("%a, %b %d")
+        d_lbl = Label(text=now_str, font_size="10.5sp", bold=True, color=theme_manager.get("text_secondary"), size_hint=(None, 1), width=dp(80), halign="right")
+        d_lbl.bind(size=d_lbl.setter("text_size"))
+        title_row.add_widget(d_lbl)
+        banner.add_widget(title_row)
 
         self.lbl_sub = Label(
-            text="Here's your energy and water overview for this month.",
-            font_size="11.5sp",
+            text="Here's your monthly energy and water overview.",
+            font_size="11sp",
             color=theme_manager.get("text_secondary"),
+            size_hint_y=None,
+            height=dp(18),
             halign="left",
-            valign="top"
+            valign="middle",
+            shorten=True,
+            shorten_from="right"
         )
         self.lbl_sub.bind(size=self.lbl_sub.setter("text_size"))
-        g_box.add_widget(self.lbl_sub)
-        hdr.add_widget(g_box)
+        banner.add_widget(self.lbl_sub)
 
-        # Right Controls: Date Chip & Notification Bell
-        right_box = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint=(None, 1), width=dp(210))
-
-        # Date chip
-        now_str = datetime.now().strftime("%a, %b %d, %Y")
-        date_chip = BoxLayout(
-            orientation="horizontal",
-            spacing=dp(6),
-            size_hint=(None, None),
-            size=(dp(140), dp(32)),
-            pos_hint={"center_y": 0.5},
-            padding=[dp(8), 0, dp(8), 0]
-        )
-        date_chip.bind(
-            pos=lambda inst, *a: self._style_chip(inst),
-            size=lambda inst, *a: self._style_chip(inst)
-        )
-        cal_ic = Icon(icon_name="calendar-month-outline", font_size="15sp", color=theme_manager.get("text_secondary"), pos_hint={"center_y": 0.5})
-        d_lbl = Label(text=now_str, font_size="10.5sp", bold=True, color=theme_manager.get("text_primary"), pos_hint={"center_y": 0.5})
-        date_chip.add_widget(cal_ic)
-        date_chip.add_widget(d_lbl)
-        right_box.add_widget(date_chip)
-
-        # Bell icon with properly anchored red unread notification badge
-        right_box.add_widget(BellNotificationButton(count=2))
-        hdr.add_widget(right_box)
-        self.content_box.add_widget(hdr)
+        self.content_box.add_widget(banner)
 
     def _style_chip(self, inst):
         inst.canvas.before.clear()
@@ -356,9 +364,10 @@ class DashboardScreen(Screen):
         cost_water = round(water_val * theme_manager.water_tariff)
 
         # -----------------------------
-        # 1. Populate Row 1 (4 KPI Cards)
+        # 1. Populate KPI Rows (2x2 Mobile Grid)
         # -----------------------------
-        self.kpi_row.clear_widgets()
+        self.kpi_row1.clear_widgets()
+        self.kpi_row2.clear_widgets()
 
         # Card 1: Electricity Usage (Amber/Yellow circular badge)
         kpi1 = KPICard(
@@ -369,9 +378,10 @@ class DashboardScreen(Screen):
             icon_bg_color=theme_manager.get("accent_amber_bg"),
             icon_color=theme_manager.get("accent_amber"),
             trend_pct=elec_trend,
-            bar_color=theme_manager.get("accent_amber")
+            bar_color=theme_manager.get("accent_amber"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi1)
+        self.kpi_row1.add_widget(kpi1)
 
         # Card 2: Water Usage (Teal circular badge)
         kpi2 = KPICard(
@@ -382,22 +392,24 @@ class DashboardScreen(Screen):
             icon_bg_color=theme_manager.get("accent_water_bg"),
             icon_color=theme_manager.get("accent_water"),
             trend_pct=water_trend,
-            bar_color=theme_manager.get("accent_water")
+            bar_color=theme_manager.get("accent_water"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi2)
+        self.kpi_row1.add_widget(kpi2)
 
         # Card 3: Est. Electricity Cost (Purple circular badge)
         kpi3 = KPICard(
-            title="Est. Electricity Cost",
+            title="Est. Elec Cost",
             value=f"₹{cost_elec:,.0f}",
             unit="",
             icon_name="wallet",
             icon_bg_color=theme_manager.get("accent_cost_elec_bg"),
             icon_color=theme_manager.get("accent_cost_elec"),
             trend_pct=-6.0,
-            bar_color=theme_manager.get("accent_cost_elec")
+            bar_color=theme_manager.get("accent_cost_elec"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi3)
+        self.kpi_row2.add_widget(kpi3)
 
         # Card 4: Est. Water Cost (Green circular badge)
         kpi4 = KPICard(
@@ -408,16 +420,15 @@ class DashboardScreen(Screen):
             icon_bg_color=theme_manager.get("brand_surface"),
             icon_color=theme_manager.get("brand_primary"),
             trend_pct=-10.0,
-            bar_color=theme_manager.get("brand_primary")
+            bar_color=theme_manager.get("brand_primary"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi4)
+        self.kpi_row2.add_widget(kpi4)
 
         # -----------------------------
-        # 2. Populate Row 2 (Charts & Recent Activity)
+        # 2. Charts (Full Width Stacked)
         # -----------------------------
-        self.row2.clear_widgets()
-
-        # Electricity Line Chart (width 36%)
+        self.chart_elec_box.clear_widgets()
         elec_points = [115, 105, 128, 175, 138, kwh_val]
         chart_elec = CanvasChart(
             title="Electricity Consumption",
@@ -428,11 +439,11 @@ class DashboardScreen(Screen):
             data_points=elec_points,
             x_labels=["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
             y_max=200.0,
-            size_hint=(0.36, 1)
+            size_hint=(1, 1)
         )
-        self.row2.add_widget(chart_elec)
+        self.chart_elec_box.add_widget(chart_elec)
 
-        # Water Line Chart (width 36%)
+        self.chart_water_box.clear_widgets()
         water_points = [2800, 2700, 2950, 3200, 2900, water_val]
         chart_water = CanvasChart(
             title="Water Consumption",
@@ -443,36 +454,43 @@ class DashboardScreen(Screen):
             data_points=water_points,
             x_labels=["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
             y_max=4000.0,
-            size_hint=(0.36, 1)
+            size_hint=(1, 1)
         )
-        self.row2.add_widget(chart_water)
+        self.chart_water_box.add_widget(chart_water)
 
-        # Recent Activity Card (width 28%)
+        # -----------------------------
+        # 3. Recent Activity (Full Width Stacked)
+        # -----------------------------
+        self.recent_box.clear_widgets()
         act_card = self._build_recent_activity_card(recent_elec, recent_water, kwh_val, water_val)
-        self.row2.add_widget(act_card)
+        self.recent_box.add_widget(act_card)
 
         # -----------------------------
-        # 3. Populate Row 3 (Comparison, Budget, Prediction)
+        # 4. Household Comparison (Full Width Stacked)
         # -----------------------------
-        self.row3.clear_widgets()
-
-        # Card 1: Your Household Comparison
+        self.comp_box.clear_widgets()
         comp_card = self._build_household_comparison_card(kwh_val, water_val)
-        self.row3.add_widget(comp_card)
+        self.comp_box.add_widget(comp_card)
 
-        # Card 2: Monthly Budget Progress
+        # -----------------------------
+        # 5. Monthly Budget Progress (Full Width Stacked)
+        # -----------------------------
+        self.budget_box.clear_widgets()
         budget_card = self._build_budget_progress_card(cost_elec, cost_water)
-        self.row3.add_widget(budget_card)
+        self.budget_box.add_widget(budget_card)
 
-        # Card 3: Prediction for Next Month
+        # -----------------------------
+        # 6. Prediction for Next Month (Full Width Stacked)
+        # -----------------------------
+        self.pred_box.clear_widgets()
         pred_card = self._build_prediction_card()
-        self.row3.add_widget(pred_card)
+        self.pred_box.add_widget(pred_card)
 
     def _populate_fallback(self):
         self._populate_dashboard({})
 
     def _build_recent_activity_card(self, recent_elec, recent_water, current_kwh, current_water):
-        card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(6), size_hint=(0.28, 1))
+        card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(6), size_hint=(1, 1))
 
         # Header: Clock icon + 'Recent Activity' + 'View All >'
         top = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(24))
@@ -559,7 +577,7 @@ class DashboardScreen(Screen):
         return card
 
     def _build_household_comparison_card(self, current_kwh, current_water):
-        card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.33, 1))
+        card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint=(1, 1))
 
         # Title
         hdr = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(22))
@@ -633,7 +651,7 @@ class DashboardScreen(Screen):
         return card
 
     def _build_budget_progress_card(self, current_cost_elec, current_cost_water):
-        card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(10), size_hint=(0.33, 1))
+        card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint=(1, 1))
 
         # Header: Target icon + 'Monthly Budget Progress'
         hdr = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(22))
@@ -695,7 +713,7 @@ class DashboardScreen(Screen):
         return card
 
     def _build_prediction_card(self):
-        card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.33, 1))
+        card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint=(1, 1))
 
         # Title: Trending-up icon + 'Prediction for Next Month'
         hdr = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(22))

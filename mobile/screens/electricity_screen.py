@@ -33,6 +33,8 @@ from widgets.glass_widgets import (
     Icon,
     KPICard,
     LiquidGlassLayout,
+    MobileBottomNav,
+    MobileHeader,
     show_success_popup,
 )
 
@@ -83,41 +85,33 @@ class ElectricityScreen(Screen):
 
     def _build_ui(self):
         self.clear_widgets()
-        bg_layout = LiquidGlassLayout()
+        bg_layout = LiquidGlassLayout(orientation="vertical")
 
-        main_split = BoxLayout(orientation="horizontal")
-
-        # 1. Left Sidebar
-        user_info = api_client.current_user or {}
-        self.sidebar = GlassSidebar(
-            active_screen="electricity",
-            on_navigate=self._navigate,
-            on_sign_out=self._handle_sign_out,
-            user_info=user_info
+        # Top Mobile Header
+        header = MobileHeader(
+            title="Electricity Tracking",
+            subtitle="Monitor power consumption & appliances",
+            on_back=lambda: self._navigate("dashboard")
         )
-        main_split.add_widget(self.sidebar)
+        bg_layout.add_widget(header)
 
-        # 2. Main Content
+        # Main Scrollable Content Area
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         self.content_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(18), dp(16), dp(18), dp(18)],
-            spacing=dp(12),
+            padding=[dp(12), dp(8), dp(12), dp(16)],
+            spacing=dp(10),
             size_hint_y=None
         )
         self.content_box.bind(minimum_height=self.content_box.setter("height"))
 
-        # Header
-        header = GlassHeader(
-            title="Electricity Management",
-            subtitle="Monitor real-time consumption, tariffs, and appliance demand",
-            on_back=lambda: self._navigate("dashboard")
-        )
-        self.content_box.add_widget(header)
+        # Row 1: KPI Cards 1 & 2 (Usage & Estimated Cost)
+        self.kpi_row1 = BoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(78))
+        self.content_box.add_widget(self.kpi_row1)
 
-        # KPI Metrics Row
-        self.kpi_row = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None, height=dp(88))
-        self.content_box.add_widget(self.kpi_row)
+        # Row 2: KPI Cards 3 & 4 (Daily Average & Active Appliances)
+        self.kpi_row2 = BoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(78))
+        self.content_box.add_widget(self.kpi_row2)
 
         # Large Detailed Electricity Consumption Chart
         chart_points = [115, 105, 128, 175, 138, 124]
@@ -131,15 +125,12 @@ class ElectricityScreen(Screen):
             x_labels=["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"],
             y_max=200.0,
             size_hint_y=None,
-            height=dp(240)
+            height=dp(220)
         )
         self.content_box.add_widget(self.chart)
 
-        # Split Bottom Row: Logging Form on Left (55%) + Historical Logs on Right (45%)
-        split_row = BoxLayout(orientation="horizontal", spacing=dp(10), size_hint_y=None)
-
-        # Card 1: Log New Monthly Reading & Appliance Inventory
-        form_card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.55, None))
+        # Card 1: Log New Monthly Reading & Appliance Inventory (Stacked Full Width)
+        form_card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint_y=None)
         form_card.bind(minimum_height=form_card.setter("height"))
 
         f_hdr = BoxLayout(orientation="horizontal", spacing=dp(6), size_hint_y=None, height=dp(24))
@@ -214,28 +205,23 @@ class ElectricityScreen(Screen):
         self.btn_submit.bind(on_release=self._handle_save_electricity)
         form_card.add_widget(self.btn_submit)
 
-        split_row.add_widget(form_card)
+        self.content_box.add_widget(form_card)
 
-        # Card 2: Electricity History Logs
-        self.history_card = GlassCard(orientation="vertical", padding=dp(14), spacing=dp(8), size_hint=(0.45, None))
+        # Card 2: Electricity History Logs (Stacked Full Width)
+        self.history_card = GlassCard(orientation="vertical", padding=dp(12), spacing=dp(8), size_hint_y=None)
         self.history_card.bind(minimum_height=self.history_card.setter("height"))
-        split_row.add_widget(self.history_card)
-
-        def _sync_row_height(*args):
-            h = max(form_card.minimum_height, self.history_card.minimum_height, dp(580))
-            form_card.height = h
-            self.history_card.height = h
-            split_row.height = h
-
-        form_card.bind(minimum_height=_sync_row_height)
-        self.history_card.bind(minimum_height=_sync_row_height)
-        split_row.height = dp(580)
-
-        self.content_box.add_widget(split_row)
+        self.content_box.add_widget(self.history_card)
 
         scroll.add_widget(self.content_box)
-        main_split.add_widget(scroll)
-        bg_layout.add_widget(main_split)
+        bg_layout.add_widget(scroll)
+
+        # Fixed Bottom Navigation Bar
+        self.bottom_nav = MobileBottomNav(
+            active_screen="electricity",
+            on_navigate=self._navigate
+        )
+        bg_layout.add_widget(self.bottom_nav)
+
         self.add_widget(bg_layout)
 
     def on_pre_enter(self, *args):
@@ -254,7 +240,8 @@ class ElectricityScreen(Screen):
         threading.Thread(target=_bg, daemon=True).start()
 
     def _render_kpis(self):
-        self.kpi_row.clear_widgets()
+        self.kpi_row1.clear_widgets()
+        self.kpi_row2.clear_widgets()
         latest_val = self.elec_records[0].get("monthly_consumption_kwh", 124.0) if self.elec_records else 124.0
         cost_val = round(latest_val * 10.0)
         daily_avg = latest_val / 30.0
@@ -267,45 +254,49 @@ class ElectricityScreen(Screen):
             icon_bg_color=theme_manager.get("accent_amber_bg"),
             icon_color=theme_manager.get("accent_amber"),
             trend_pct=-8.0,
-            bar_color=theme_manager.get("accent_amber")
+            bar_color=theme_manager.get("accent_amber"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi1)
+        self.kpi_row1.add_widget(kpi1)
 
         kpi2 = KPICard(
-            title="Estimated Cost (@ ₹10/kWh)",
+            title="Estimated Cost",
             value=f"₹{cost_val:,.0f}",
             unit="",
             icon_name="wallet",
             icon_bg_color=theme_manager.get("accent_cost_elec_bg"),
             icon_color=theme_manager.get("accent_cost_elec"),
             trend_pct=-6.0,
-            bar_color=theme_manager.get("accent_cost_elec")
+            bar_color=theme_manager.get("accent_cost_elec"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi2)
+        self.kpi_row1.add_widget(kpi2)
 
         kpi3 = KPICard(
-            title="Daily Average Demand",
+            title="Daily Average",
             value=f"{daily_avg:.1f}",
-            unit="kWh/day",
+            unit="kWh/d",
             icon_name="chart-bell-curve-cumulative",
             icon_bg_color=theme_manager.get("accent_elec_bg"),
             icon_color=theme_manager.get("accent_elec"),
             trend_pct=-4.0,
-            bar_color=theme_manager.get("accent_elec")
+            bar_color=theme_manager.get("accent_elec"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi3)
+        self.kpi_row2.add_widget(kpi3)
 
         kpi4 = KPICard(
             title="Active Appliances",
             value="10",
-            unit="units",
+            unit="items",
             icon_name="power-plug",
             icon_bg_color=theme_manager.get("brand_surface"),
             icon_color=theme_manager.get("brand_primary"),
             trend_pct=0.0,
-            bar_color=theme_manager.get("brand_primary")
+            bar_color=theme_manager.get("brand_primary"),
+            size_hint=(0.5, 1)
         )
-        self.kpi_row.add_widget(kpi4)
+        self.kpi_row2.add_widget(kpi4)
 
     def _render_history_table(self):
         self.history_card.clear_widgets()

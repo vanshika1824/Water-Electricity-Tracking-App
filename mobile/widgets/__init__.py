@@ -7,6 +7,8 @@ from widgets.glass_widgets import (
     CounterWidget,
     GlassHeader,
     GlassSidebar,
+    MobileBottomNav,
+    MobileHeader,
     Icon,
     show_success_popup,
 )
@@ -20,6 +22,8 @@ __all__ = [
     "CounterWidget",
     "GlassHeader",
     "GlassSidebar",
+    "MobileBottomNav",
+    "MobileHeader",
     "Icon",
     "show_success_popup",
 ]

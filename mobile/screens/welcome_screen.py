@@ -82,10 +82,9 @@ class WelcomeScreen(Screen):
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         center_box = BoxLayout(
             orientation="vertical",
-            padding=[dp(20), dp(10), dp(20), dp(24)],
+            padding=[dp(16), dp(10), dp(16), dp(24)],
             spacing=dp(14),
-            size_hint=(None, None),
-            width=dp(430)
+            size_hint=(1, None)
         )
         center_box.bind(minimum_height=center_box.setter("height"))
 
@@ -238,13 +237,7 @@ class WelcomeScreen(Screen):
 
         center_box.add_widget(btn_box)
 
-        # Outer centering container
-        outer = BoxLayout(orientation="horizontal")
-        outer.add_widget(BoxLayout(size_hint_x=1))
-        outer.add_widget(center_box)
-        outer.add_widget(BoxLayout(size_hint_x=1))
-
-        scroll.add_widget(outer)
+        scroll.add_widget(center_box)
         main_col.add_widget(scroll)
         self.bg_layout.add_widget(main_col)
         self.add_widget(self.bg_layout)

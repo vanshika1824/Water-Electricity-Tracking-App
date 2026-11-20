@@ -13,6 +13,12 @@ if "KIVY_HOME" not in os.environ:
 # Ensure mobile packages can import cleanly
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
+# Configure portrait mobile dimensions before Window initialization
+from kivy.config import Config
+Config.set("graphics", "width", "400")
+Config.set("graphics", "height", "850")
+Config.set("graphics", "resizable", "1")
+
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, SlideTransition
 from kivymd.app import MDApp
@@ -30,8 +36,8 @@ from screens import (
     WelcomeScreen,
 )
 
-# Desktop / Tablet widescreen layout matching Option A modern desktop UI
-Window.size = (1280, 720)
+# Portrait mobile viewport for smartphone simulation on laptop/desktop (approx 400 x 850)
+Window.size = (400, 850)
 Window.clearcolor = theme_manager.get("bg_screen")
 
 

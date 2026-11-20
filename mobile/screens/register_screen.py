@@ -86,10 +86,9 @@ class RegisterScreen(Screen):
         scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
         center_container = BoxLayout(
             orientation="vertical",
-            padding=[dp(20), dp(10), dp(20), dp(24)],
+            padding=[dp(16), dp(10), dp(16), dp(24)],
             spacing=dp(14),
-            size_hint=(None, None),
-            width=dp(400)
+            size_hint=(1, None)
         )
         center_container.bind(minimum_height=center_container.setter("height"))
 
@@ -248,13 +247,7 @@ class RegisterScreen(Screen):
 
         center_container.add_widget(card)
 
-        # Centering wrappers
-        outer = BoxLayout(orientation="horizontal")
-        outer.add_widget(BoxLayout(size_hint_x=1))
-        outer.add_widget(center_container)
-        outer.add_widget(BoxLayout(size_hint_x=1))
-
-        scroll.add_widget(outer)
+        scroll.add_widget(center_container)
         main_col.add_widget(scroll)
         bg_layout.add_widget(main_col)
         self.add_widget(bg_layout)
